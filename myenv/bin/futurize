@@ -1,0 +1,8 @@
+#!/media/oni/cabe96fc-3fed-4311-b590-d1bf3a6a7086/mathsagent/myenv/bin/python3
+# -*- coding: utf-8 -*-
+import re
+import sys
+from libfuturize.main import main
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(main())
