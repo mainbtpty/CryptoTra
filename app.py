@@ -25,9 +25,7 @@ async def get_next(generator):
 
 # Function to manage visitor count
 def update_visitor_count():
-    # Initialize session state for visit count
     if 'visit_count' not in st.session_state:
-        # Check if a file exists to load previous count
         count_file = "visit_count.txt"
         if os.path.exists(count_file):
             with open(count_file, "r") as f:
@@ -37,26 +35,20 @@ def update_visitor_count():
                     st.session_state.visit_count = 0
         else:
             st.session_state.visit_count = 0
-        
-        # Increment count for this visit
         st.session_state.visit_count += 1
-        
-        # Save updated count to file
         with open(count_file, "w") as f:
             f.write(str(st.session_state.visit_count))
-
     return st.session_state.visit_count
 
 # Streamlit app
 st.title("Crypto Trading App")
 
-# Update and display visitor count
 visitor_count = update_visitor_count()
 st.markdown(f"**Number of Visitors:** {visitor_count}")
 
 # Sidebar settings
 st.sidebar.header("Settings")
-exchange = st.sidebar.selectbox("Exchange", ["binance", "bybit"])
+exchange = st.sidebar.selectbox("Exchange", ["binanceus", "bybit"])  # Changed 'binance' to 'binanceus'
 timeframe = st.sidebar.selectbox("Timeframe", ["1m", "1h", "1d"])
 symbol = st.sidebar.text_input("Symbol (e.g., BTC/USDT)", "BTC/USDT")
 st.sidebar.header("Strategy Parameters")
@@ -93,7 +85,7 @@ if st.sidebar.button("Start"):
                             fig.add_trace(go.Scatter(x=df['timestamp'], y=df['ema_fast'], name='EMA Fast'))
                             fig.add_trace(go.Scatter(x=df['timestamp'], y=df['ema_slow'], name='EMA Slow'))
                             chart.plotly_chart(fig, use_container_width=True)
-                        time.sleep(1)  # Optional delay to simulate real-time updates
+                        time.sleep(1)
             elif timeframe == "1h":
                 df = macd_signal(df, fast=fast_macd, slow=slow_macd, signal=signal_macd)
                 fig = go.Figure()
@@ -117,13 +109,11 @@ st.expander("Help").write("""
 - For 1-minute timeframe, you can also stream real-time updates.
 """)
 
-# Info section with contribution and contact details
 st.markdown("---")
 st.subheader("INFO")
 st.markdown("""
 This is an open-source project, and you are very welcome to **donate** and **contribute** your awesome comments, questions, or resources!
 """)
-
 col1, col2 = st.columns(2)
 with col1:
     st.markdown("**Contact Me:**")
