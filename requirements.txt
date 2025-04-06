@@ -1,0 +1,5 @@
+streamlit
+pandas
+plotly
+ccxt>=4.2.0  # Ensure a recent version with async support
+ta
