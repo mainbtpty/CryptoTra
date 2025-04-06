@@ -6,6 +6,7 @@ from strategy import ema_crossover, macd_signal, rsi_signal
 import asyncio
 import time
 import os
+import ccxt.async_support as ccxt  # Use the async version of CCXT
 
 # Synchronous wrapper for running async coroutines
 def run_async(coro):
@@ -40,17 +41,49 @@ def update_visitor_count():
             f.write(str(st.session_state.visit_count))
     return st.session_state.visit_count
 
+# Asynchronous function to fetch symbols for the selected exchange
+async def fetch_symbols(exchange_id):
+    exchange_class = getattr(ccxt, exchange_id)
+    exchange = exchange_class()
+    try:
+        markets = await exchange.load_markets()
+        return list(markets.keys())
+    except Exception as e:
+        st.error(f"Failed to fetch symbols for {exchange_id}: {str(e)}")
+        return []
+    finally:
+        # Only call close() if the exchange supports it
+        if hasattr(exchange, 'close'):
+            await exchange.close()
+
+# List of exchanges
+exchanges = [
+    'ascendex', 'bequant', 'bigone', 'binancecoinm', 'binanceus', 'binanceusdm', 
+    'bingx', 'bit2c', 'bitbank', 'bitbns', 'bitfinex', 'bitfinex1', 'bitmex', 'bybit', 'cex', 
+    'coinbase', 'coincheck', 'deribit', 'gemini', 'hitbtc', 'kraken', 'krakenfutures', 
+    'kucoin', 'kucoinfutures', 'kuna', 'luno', 'okx', 'poloniex'
+]
+exchanges.sort()  # Sort alphabetically for user-friendly dropdown
+
 # Streamlit app
 st.title("Crypto Trading App")
 
+# Update and display visitor count
 visitor_count = update_visitor_count()
 st.markdown(f"**Number of Visitors:** {visitor_count}")
 
 # Sidebar settings
 st.sidebar.header("Settings")
-exchange = st.sidebar.selectbox("Exchange", ["binanceus", "bybit"])  # Changed 'binance' to 'binanceus'
+exchange = st.sidebar.selectbox("Exchange", exchanges)
+
+# Fetch symbols for the selected exchange
+if 'symbols' not in st.session_state or st.session_state.selected_exchange != exchange:
+    st.session_state.selected_exchange = exchange
+    st.session_state.symbols = run_async(fetch_symbols(exchange))
+
+symbol = st.sidebar.selectbox("Symbol", st.session_state.symbols if 'symbols' in st.session_state else [])
+
 timeframe = st.sidebar.selectbox("Timeframe", ["1m", "1h", "1d"])
-symbol = st.sidebar.text_input("Symbol (e.g., BTC/USDT)", "BTC/USDT")
 st.sidebar.header("Strategy Parameters")
 if timeframe == "1m":
     fast_ema = st.sidebar.number_input("Fast EMA Period", min_value=1, value=5)
@@ -102,13 +135,18 @@ if st.sidebar.button("Start"):
         except Exception as e:
             st.error(f"Error: {str(e)}")
 
+# Help section
 st.expander("Help").write("""
-- Select exchange, timeframe, and symbol in the sidebar.
-- Adjust strategy parameters based on the timeframe.
+- Select an exchange from the dropdown to fetch data from your chosen platform.
+- Choose a trading pair symbol from the dropdown, which lists available symbols for the selected exchange.
+- Select a timeframe: 1m (1 minute), 1h (1 hour), or 1d (1 day).
+- Adjust strategy parameters based on the selected timeframe.
 - Click 'Start' to fetch data and view charts with trading signals.
-- For 1-minute timeframe, you can also stream real-time updates.
+- For 1-minute timeframe, enable 'Stream Updates' to see real-time data if supported by the exchange.
+- Note: Some exchanges may have geographic restrictions depending on your location.
 """)
 
+# INFO section with exact text as requested
 st.markdown("---")
 st.subheader("INFO")
 st.markdown("""
