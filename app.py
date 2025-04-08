@@ -150,7 +150,7 @@ st.expander("Help").write("""
 st.markdown("---")
 st.subheader("INFO")
 st.markdown("""
-This is an open-source project, and you are very welcome to **donate** and **contribute** your awesome comments, questions, or resources!
+This is an open-source project. We welcome contributions, donations, and feedback from developers, users, and supporters. Join us to make a difference and be part of a growing community!
 """)
 col1, col2 = st.columns(2)
 with col1:
