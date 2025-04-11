@@ -6,7 +6,7 @@ from strategy import ema_crossover, macd_signal, rsi_signal
 import asyncio
 import time
 import os
-import ccxt.async_support as ccxt  # Use the async version of CCXT
+import ccxt.async_support as ccxt  # Added import for CCXT async support
 
 # Synchronous wrapper for running async coroutines
 def run_async(coro):
@@ -41,6 +41,19 @@ def update_visitor_count():
             f.write(str(st.session_state.visit_count))
     return st.session_state.visit_count
 
+# Function to display key metrics and data table
+def display_data(df):
+    st.subheader("Key Metrics")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Latest Close", f"{df['close'].iloc[-1]:.2f}")
+    col2.metric("Highest High", f"{df['high'].max():.2f}")
+    col3.metric("Lowest Low", f"{df['low'].min():.2f}")
+    col4.metric("Total Volume", f"{df['volume'].sum():.2f}")
+    
+    if st.checkbox("Show Full Data Table"):
+        st.subheader("OHLCV Data with Indicators")
+        st.dataframe(df)
+
 # Asynchronous function to fetch symbols for the selected exchange
 async def fetch_symbols(exchange_id):
     exchange_class = getattr(ccxt, exchange_id)
@@ -52,11 +65,10 @@ async def fetch_symbols(exchange_id):
         st.error(f"Failed to fetch symbols for {exchange_id}: {str(e)}")
         return []
     finally:
-        # Only call close() if the exchange supports it
         if hasattr(exchange, 'close'):
             await exchange.close()
 
-# List of exchanges
+# List of exchanges including binanceus and bybit
 exchanges = [
     'ascendex', 'bequant', 'bigone', 'binancecoinm', 'binanceus', 'binanceusdm', 
     'bingx', 'bit2c', 'bitbank', 'bitbns', 'bitfinex', 'bitfinex1', 'bitmex', 'bybit', 'cex', 
@@ -77,7 +89,7 @@ st.sidebar.header("Settings")
 exchange = st.sidebar.selectbox("Exchange", exchanges)
 
 # Fetch symbols for the selected exchange
-if 'symbols' not in st.session_state or st.session_state.selected_exchange != exchange:
+if 'symbols' not in st.session_state or st.session_state.get('selected_exchange') != exchange:
     st.session_state.selected_exchange = exchange
     st.session_state.symbols = run_async(fetch_symbols(exchange))
 
@@ -106,6 +118,7 @@ if st.sidebar.button("Start"):
                 fig.add_trace(go.Scatter(x=df['timestamp'], y=df['ema_fast'], name='EMA Fast'))
                 fig.add_trace(go.Scatter(x=df['timestamp'], y=df['ema_slow'], name='EMA Slow'))
                 chart = st.plotly_chart(fig, use_container_width=True)
+                display_data(df)  # Display metrics and data table
                 if st.checkbox("Stream Updates"):
                     stream_gen = stream_ohlcv(exchange, symbol, timeframe)
                     for _ in range(10):
@@ -126,25 +139,33 @@ if st.sidebar.button("Start"):
                 fig.add_trace(go.Scatter(x=df['timestamp'], y=df['macd'], name='MACD'))
                 fig.add_trace(go.Scatter(x=df['timestamp'], y=df['signal_line'], name='Signal Line'))
                 st.plotly_chart(fig, use_container_width=True)
+                display_data(df)  # Display metrics and data table
             else:
                 df = rsi_signal(df, period=rsi_period)
                 fig = go.Figure()
                 fig.add_trace(go.Candlestick(x=df['timestamp'], open=df['open'], high=df['high'], low=df['low'], close=df['close']))
                 fig.add_trace(go.Scatter(x=df['timestamp'], y=df['rsi'], name='RSI'))
                 st.plotly_chart(fig, use_container_width=True)
+                display_data(df)  # Display metrics and data table
         except Exception as e:
             st.error(f"Error: {str(e)}")
 
 # Help section
 st.expander("Help").write("""
 - Select an exchange from the dropdown to fetch data from your chosen platform.
-- Choose a trading pair symbol from the dropdown, which lists available symbols for the selected exchange.
+- Choose a trading pair symbol from the dropdown populated with available symbols for the selected exchange.
 - Select a timeframe: 1m (1 minute), 1h (1 hour), or 1d (1 day).
 - Adjust strategy parameters based on the selected timeframe.
 - Click 'Start' to fetch data and view charts with trading signals.
 - For 1-minute timeframe, enable 'Stream Updates' to see real-time data if supported by the exchange.
-- Note: Some exchanges may have geographic restrictions depending on your location.
+- Note: Some exchanges like Bybit may have geographic restrictions depending on your location.
 """)
+
+# Future enhancement suggestion
+# Consider adding a backtesting feature to simulate trades based on the signals
+# and display performance metrics like total profit, number of trades, win rate, etc.
+
+
 
 # INFO section with exact text as requested
 st.markdown("---")
